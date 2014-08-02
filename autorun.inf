@@ -1,0 +1,4 @@
+[autorun]
+icon=icon.ico
+ShellExecute=index.html
+label=SlackAndHay

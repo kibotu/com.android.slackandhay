@@ -1,0 +1,131 @@
+A GameObject is a very simple thing: it consists of a unique ID, a State and 
+several Components.
+
+STATES
+
+Its state, first and foremost, establishes whether the object is in play or not.
+Right after an object was created, it is considered to be in play and
+its state is accordingly set to CREATED. When the object leaves the game, 
+its state is set to DESTROYED. Apart from those two, an object can take on
+several intermediate states, if its life is bound to be complex enough.
+
+CREATED and DESTROYED are the only states guaranteed to exist and to be
+applicable to all GameObjects. They are universal in that regard. 
+
+DESTROYED is the only state that means an object is not in play. A DESTROYED
+GameObject is gone forever; however, in a practical sense, its empty hull
+may be recycled by another GameObject. Despite this re-use, both
+GameObjects, old and new, are completely distinct from each other; the
+successor object is considered to be completely separate, as if it were 
+freshly created in a virginal memory location.
+
+Each state has a duration, which may vary by instance. The duration determines
+how much time must be spent in this state before a transition may occur. A
+transition taking place before a state has lived out its duration is
+considered an interruption.
+
+A duration of < 0 marks a state as timeless. A timeless state is also
+endless: no transition will ever take place -- unless the state is being 
+interrupted, of course.
+
+The following is a table of all valid states; an upper case name signifies a
+universal state.
+
+#	State Name
+------------------
+0	CREATED
+1	idle
+2	(turning)
+3	walking
+4	running
+5	attacking
+6	defending
+7	struck
+8	dead
+9	DESTROYED
+
+The order in which these states are listed inherently defines their priority.
+A state can only be interrupted by states which follow it in this list, 
+i.e., states with a higher list index than its own. This means that no state
+can be interrupted by itself or a state that was defined before it. 
+
+Each object has an individual state transition table which defines the ways
+in which the object's states may follow each other. These transitions are
+governed by the StateManager.
+
+THE STATE MANAGER
+
+(Lorem ipsum.)
+
+
+COMPONENTS
+
+Components add complexity to what an object is and what it can do. There
+are multiple types of components, each of which extends an object's properties
+and offers a certain service to the rest of the game.
+
+This means that all components of a common type share the same interface. 
+A GameObject has several public slots that components can go into, 
+one for each component type. Empty slots are not really empty; 
+they are occupied by a default component which provides the necessary 
+interface, but with an empty implementation.
+
+Components will probably work by acting on the states of their host GameObject, by proposing new states to its StateManager and by serving as hooks to
+other elements of the game system, such as the sound engine. 
+
+Components may use the services of other component types, and as such may
+require components of other types to be present.
+
+Here's a list of existing component types and what they're there for.
+
+Component Type		Purpose
+---------------------------------------------------------------------------
+Control			control an object's actions; hook to AI or input
+Grid			object has a spatial location on the grid
+Movement		object can move; requires Grid component
+Health			object has health
+Offensive		object may deal damage
+Defensive		object may receive damage
+Usage			object can be used by other objects
+Graphics		graphical representation; rendering hook
+Sound			accustic capabilities; hook to sound engine
+(Valuation)		binds a value to an object
+(Inventory)		object can store other objects
+(Faction)		object is tied to a faction; FriendOrFoe type stuff
+
+
+THE GRID
+
+The Grid represents the (two-dimensional) world. It is composed of
+GridLocations, each of which can hold a single GameObject. This means
+that GameObjects can NOT share locations on the Grid. GameObjects that go onto
+the Grid need to have a GridComponent; they should also have a 
+GraphicsComponent so they can be seen.
+
+The Grid has a set of Directions, which define relations of neighborship 
+between GridLocations. 
+
+The Grid supports basic movement of GameObjects it contains between 
+neighboring GridLocations (possibly via the GridComponent hook), and it offers 
+information on whether a certain GridLocation or its neighbors are currently
+free or occupied by another GameObject. This occupying GameObject can also 
+be requested from the Grid.
+
+
+THE GAME OBJECT MANAGER
+
+
+
+THE GAME OBJECT FACTORY
+
+This factory creates new GameObjects. Since it needs to allocate memory to
+do so, it should never be used during gameplay.
+
+GameObjects are built from ObjectBlueprints and leave the Factory with a 
+unique ID and their State set to CREATED, at which point the 
+GameObjectManager is supposed to take control.
+
+The Components needed to build the GameObject are created with the help of a
+ComponentFactory, which uses the ComponentBlueprints contained in the 
+ObjectBlueprint to produce ready-made Components or their empty defaults.
+

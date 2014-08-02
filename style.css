@@ -1,0 +1,44 @@
+html,body{
+	background-color: #F7F0DF;
+	width:99%;
+	height:99%;
+	font-family: Verdana, sans-serif;
+}
+.main{
+	top: 250px;
+	background-color: #F5E0B3;
+	background-image: url(Cover/slacknhay-icon.jpg);
+	background-position: 20px 20px;
+	background-repeat: no-repeat;
+	width: 800px;
+	padding: 400px 20px 20px 20px;
+	margin: 0 auto;
+}
+h3{
+	font-weight:100;
+}
+h1{
+color:F2B635;
+}
+h2{
+	background-color: #FCF9ED;
+	padding: 10px 10px 10px 10px;
+}
+h3{
+	background-color: #F2B635;
+	width:100%;
+	border-top: 4px solid #ffffff;
+	border-bottom: 2px solid #C7952A;
+}
+pre{
+	font-weight:900;
+}
+a{
+	color: #B54E0E;
+	text-decoration: none;
+	border-bottom: 1px dashed #B54E0E;
+}
+
+a.img {
+	border-bottom: None;
+}
