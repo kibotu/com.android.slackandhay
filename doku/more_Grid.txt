@@ -1,0 +1,47 @@
+123456789012345678901234567890123456789012345678901234567890123456789012345
+
+GRID
+++++
+
+int getDistance(GridLocation, GridLocation)
+
+Returns the square of the distance between to GridLocations.
+getDistance(loc1, loc2) = 0 <==> loc1.equals(loc2)
+
+
+Directon getDirection(origin, destination)
+
+Returns the Direction of the neighbour of origin that is closest to destination.
+
+
+Direction
++++++++++
+
+NONE / SELF / IDENTITY
+NORTH
+:
+:
+NORTHWEST
+
+Direction nextClockwise()
+Direction nextCounterClockwise()
+
+
+Movement and Limitations of the Grid
+++++++++++++++++++++++++++++++++++++
+
+GridLocations are exclusive: the Grid allows only one GameObject to occupy a GridLocation at a given time. If the Grid is told to put a GameObject into an occupied GridLocation, the Object currently occupying it is simply replaced; it is, however, returned by the put() method.
+
+For that reason, Grid.put() is not public, but package private; it is up to the object's GridComponent to handle graceful movement and placement within the Grid. (Therefore, the GridComponent has to reside inside the Grid package to be effective -- a design decision which <strike>makes perfect sense to me, anyway</strike> is not completely absurd, after all.)
+
+However, it seems a questionable strategy to punish a residing object with eviction for what is essentially the intrusive rudeness of somebody else. It might be worthwhile to change the mechanism that enforces the exclusivity of GridLocations. [put() returns a boolean, maybe?]
+
+
+GridLocation and Containment
+++++++++++++++++++++++++++++
+
+A GridLocation is merely intended to be a marker, like a reference to a spot an the Grid where objects can exists. That is, a GridLocation does not
+/contain/ anything, much like a GPS coordinate does not own anything you might find there. The Grid does all the containing and uses GridLocations to remember where things are.
+
+How exactly the Grid organizes its container business is, at the moment, completely transparent to the outside. It might be tempting to postulate the existence of GridCell objects, and they might very well exist behind the scenes. It is, however, a complete waste of time to speculate about such things. [Right now, a GridCell would be nothing but a puny wrapper for GameObjects, and all it would do is get in the way.]
+
