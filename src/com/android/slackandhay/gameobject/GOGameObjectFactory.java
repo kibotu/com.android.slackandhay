@@ -1,196 +1,73 @@
 package com.android.slackandhay.gameobject;
 
-import com.android.slackandhay.gameobject.component.preset.*;
-import com.android.slackandhay.grid.GridWorld;
-import com.android.slackandhay.scene.Animation;
+import android.util.Log;
+
+import com.android.slackandhay.sound.SoundEngine;
+import com.android.slackandhay.sound.SoundEngine.Sounds;
 
 /**
- * Creates Subclasses of the Components and the State Manager to create a new
- * Game Object
- * 
+ * Creates Subclasses of the Components and the State Manager to create a new Game Object 
  * @author tom
- * 
+ *
  */
 
 public class GOGameObjectFactory {
-	/**
-	 * This class is used to create all necessary game object. game object
-	 * constructors should never be called anywhere else that here.
-	 */
 
-	@SuppressWarnings("unused")
-	private static final String TAG = GOGameObjectFactory.class.getSimpleName();
-	private final GridWorld grid;
-
-	/**
-	 * creates a now game object factory
-	 * 
-	 * @param grid
-	 *            the grid used to position the game obejcts inside the world
-	 */
-	public GOGameObjectFactory(final GridWorld grid) {
-		this.grid = grid;
-	}
-
-	// ############################
-	// PLAYER FACTORY
-	// ############################
-
-	/**
-	 * the instructions needed to create a player object
-	 */
-	private class GOPlayer extends GOGameObject {
-		public GOPlayer() {
-			super(new PlayerStateManager());
-			// Log.i(TAG, "Creating Player Object..." );
-			// Additional Components....
-			addComponent(new GOComponentSpatial2D(this, grid));
-			addComponent(new PlayerComponentGraphics(this));
-			// addComponent(new EnemyDogComponentGraphics(this));
-			// addComponent(new EnemySoldierComponentGraphics(this));
-			addComponent(new PlayerComponentInput(this));
-			addComponent(new GOComponentFollowMovement(this, grid));
-			addComponent(new PlayerComponentSound(this));
-			addComponent(new GenericComponentHealth(2000, this));
-			addComponent(new GenericComponentOffense(this, grid, 10));
-			addComponent(new GenericComponentDefense(this, 2));
-
+	private static final String TAG = "GameObjectFactory";
+	
+	//############################
+	//  PLAYER FACTORY
+	//############################
+	private class GOStateManagerPlayer extends GOStateManager{
+		protected final int NUMBER_OF_STATES = 8;
+		public GOStateManagerPlayer(){
+			stateTable = new GOState[NUMBER_OF_STATES] ;
+			//The idle duration has to be long, so that it can be easily animated... 
+			super.stateTable[0] = new GOState(GOState.StateType.IDLE, 0, 10000);
+			super.stateTable[1] = new GOState(GOState.StateType.WALKING, 0, 100);
+			super.stateTable[2] = new GOState(GOState.StateType.RUNNING, 0, 100);
+			super.stateTable[3] = new GOState(GOState.StateType.ATTACKING, 0, 100);
+			super.stateTable[4] = new GOState(GOState.StateType.BLOCKING, 0, 100);
+			super.stateTable[5] = new GOState(GOState.StateType.STRUCK, 0, 100);
+			super.stateTable[6] = new GOState(GOState.StateType.DEAD, 7, 100);
+			super.stateTable[7] = new GOState(GOState.StateType.DESTROYED, 7, 100);
+			super.stateTable[activeState].start(0);
 		}
 	}
+	private class GOPlayer extends GOGameObject{
+		protected final int NUMBER_OF_COMPONENTS = 1;
+		
+		public GOPlayer() {
+			super(new GOStateManagerPlayer());
+			super.components = new GOComponent[NUMBER_OF_COMPONENTS];
+			super.components[0] = new GOComponentSoundPlayer();
+			
+			Log.e(TAG, "Creating Player Object..." );
+			//Additional Components....
+		}
+	}
+	
+	private class GOComponentSoundPlayer extends GOComponentSound{
+		public GOComponentSoundPlayer(){
+			Log.e(TAG, "Added Component Sound");
+		}
+		@Override
+		public void update(int dt, GOGameObject goGameObject) {
+			Log.e(TAG, "Updating Sound Component...");
+			if(goGameObject.getStateMananger().getActiveState().getStateType() == GOState.StateType.ATTACKING){
+				Log.e(TAG, "triggering attack sound");
+				SoundEngine.getInstance().playSound(Sounds.HIT_CONCRETE);
+			}
+		}
 
-	/**
-	 * this method calls the GOPlayer constructor internally
-	 * 
-	 * @return a new player object
-	 */
-	public GOGameObject createPlayer() {
+	}
+	
+	public GOGameObject createPlayer(){
 		return new GOPlayer();
 	}
+	
+	//############################
+	//  MONSTER 1 FACTORY
+	//############################
 
-	// ############################
-	// CAMERA FACTORY
-	// ############################
-	/**
-	 * the instructions needed to create a camera object
-	 */
-	private class GOCamera extends GOGameObject {
-		protected GOCamera() {
-			super(new TargetPointStateManager());
-			addComponent(new CameraComponentGraphics(this));
-			addComponent(new CameraComponentInput(this));
-			addComponent(new TargetPointComponentSpatial2D(this, grid));
-		}
-	}
-
-	/**
-	 * creates a new camera object, which is used to determine the position of
-	 * the camera inside the game
-	 * 
-	 * @return
-	 * 		a camera game object
-	 */
-	public GOGameObject createCamera() {
-		return new GOCamera();
-	}
-
-	// ############################
-	// DECORATION FACTORY
-	// ############################
-	/**
-	 * the instructions needed to create a decoration object
-	 */
-	private class GODecoration extends GOGameObject {
-		protected GODecoration(Animation animation) {
-			super(new DecorationStateManager());
-			addComponent(new DecorationComponentGraphics(this, animation));
-			addComponent(new GOComponentSpatial2D(this, grid));
-		}
-	}
-
-	/**
-	 * This method creates a new decoration, such as a house or a well
-	 * @param animation
-	 * 		an animation used to represent the decoration graphically in the renderer
-	 * @return
-	 * 		a new decoration game object such as a house or a well or a tree
-	 */
-	public GOGameObject createDecoration(Animation animation) {
-		return new GODecoration(animation);
-	}
-
-	// ############################
-	// MONSTER 1 FACTORY (Monsters Inc.)
-	// ############################
-	/**
-	 * the instructions needed to create a enemy dog object
-	 */
-	private class GOEnemyDog extends GOGameObject {
-		protected GOEnemyDog() {
-			super(new EnemyDogStateManager());
-			addComponent(new EnemyDogComponentGraphics(this));
-			addComponent(new GOComponentSpatial2D(this, grid));
-			addComponent(new GOComponentFollowMovement(this, grid));
-			addComponent(new GenericComponentHealth(23, this));
-			addComponent(new GenericComponentOffense(this, grid, 10));
-			addComponent(new GenericComponentDefense(this, 2));
-			addComponent(new GenericComponentAI(this));
-		}
-	}
-
-	/**
-	 * creates a new hostile dog 
-	 * @return
-	 * 		a hostile dog 
-	 */
-	public GOGameObject createEnemyDog() {
-		return new GOEnemyDog();
-	}
-
-	/**
-	 * the instructions needed to create a enemy soldier object
-	 */
-	private class GOEnemySoldier extends GOGameObject {
-		protected GOEnemySoldier() {
-			super(new EnemyDogStateManager());
-			addComponent(new EnemySoldierComponentGraphics(this));
-			addComponent(new GOComponentSpatial2D(this, grid));
-			addComponent(new GOComponentFollowMovement(this, grid));
-			addComponent(new GenericComponentHealth(23, this));
-			addComponent(new GenericComponentOffense(this, grid, 10));
-			addComponent(new GenericComponentDefense(this, 2));
-			addComponent(new GenericComponentAI(this));
-		}
-	}
-
-	/**
-	 * creates a new hostile soldier
-	 * @return
-	 * 		a new hostile soldier
-	 */
-	public GOGameObject createEnemySoldier() {
-		return new GOEnemySoldier();
-	}
-
-	// ############################
-	// NonGrid Member FACTORY
-	// ############################
-	/**
-	 * the instructions needed to create a non grid member object
-	 */
-	private class GONonGridMember extends GOGameObject {
-		protected GONonGridMember() {
-			super(new NonGridMemberStateManager());
-			addComponent(new NonGridMemberComponentGraphics(this));
-			addComponent(new GOComponentSpatial2D(this, grid));
-		}
-	}
-
-	/**
-	 * creates a game object which is not inside the game grid 
-	 * @return
-	 * 		a new non grid member object
-	 */
-	public GOGameObject createNonGridMember() {
-		return new GONonGridMember();
-	}
 }

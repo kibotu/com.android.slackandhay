@@ -2,6 +2,7 @@ package com.android.slackandhay.input;
 
 import android.graphics.Point;
 import android.graphics.PointF;
+import android.util.Log;
 
 
 /**
@@ -16,18 +17,18 @@ import android.graphics.PointF;
  *
  */
 public class InputTouchButton {
-	private final PointF relativePosition = new PointF(0,0);
-	private final PointF relativeSize = new PointF(0,0);
-	private final Point pixelPosition = new Point(0,0);
-	private final Point pixelSize = new Point(0,0);
-	private final InputTouch inputTouch;
-
-	public InputTouchButton(final InputTouch inputTouch, final float x, final float y, final float width, final float height){
+	private PointF relativePosition = new PointF(0,0);
+	private PointF relativeSize = new PointF(0,0);
+	private Point pixelPosition = new Point(0,0);
+	private Point pixelSize = new Point(0,0);
+	private InputTouch inputTouch;
+	
+	public InputTouchButton(InputTouch inputTouch, float x, float y, float width, float height){
 		this.inputTouch = inputTouch;
-		relativePosition.x = x;
-		relativePosition.y = y;
-		relativeSize.x = width;
-		relativeSize.y = height;
+		this.relativePosition.x = x;
+		this.relativePosition.y = y;
+		this.relativeSize.x = width;
+		this.relativeSize.y = height;
 		calculateAbsolutePosition();
 	}
 	public void calculateAbsolutePosition(){
@@ -36,8 +37,8 @@ public class InputTouchButton {
 		pixelSize.x = (int)(inputTouch.getScreenResolutionX()*relativeSize.x);
 		pixelSize.y = (int)(inputTouch.getScreenResolutionY()*relativeSize.y);
 	}
-	public boolean wasPushed(final int x, final int y){
-		return x>=pixelPosition.x && x<=pixelPosition.x+pixelSize.x &&
-		y>=pixelPosition.y && y<=pixelPosition.y+pixelSize.y;
+	public boolean wasPushed(int x, int y){
+		return ( x>=(pixelPosition.x) && x<=(pixelPosition.x+pixelSize.x) &&
+				y>=(pixelPosition.y) && y<=(pixelPosition.y+pixelSize.y) );
 	}
 }

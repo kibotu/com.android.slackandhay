@@ -1,28 +1,26 @@
-package com.android.slackandhay.gameobject;
+package com.android.slackandhay;
 
 public class GOState {
-	public enum StateType {
-		IDLE, WALKING, RUNNING, ATTACKING, BLOCKING, STRUCK, DEAD, DESTROYED
+	public enum StateID {
+		IDLE, WALK, RUN, ATTACK, BLOCK
 	};
 
-	private StateType stateType = StateType.IDLE;
+	private StateID stateID = StateID.IDLE;
 	private int stateCurrentTime = 0;
 	private final int stateDuration;
-	private final int defaultTransitionIndex;
 
 	/**
 	 * Creates a new State.
 	 * 
-	 * @param stateType
+	 * @param stateID
 	 *            has to be one of the provided stateIDs, e.g.
 	 *            GOState.StateID.IDLE
 	 * @param duration
 	 *            specifies the duration of this very state.
 	 */
-	public GOState(StateType stateType, int defaultTransitionIndex, int duration) {
-		this.stateType = stateType;
+	public GOState(StateID stateID, int duration) {
+		this.stateID = stateID;
 		this.stateDuration = duration;
-		this.defaultTransitionIndex = defaultTransitionIndex;
 	}
 
 	/**
@@ -58,7 +56,7 @@ public class GOState {
 	 * 
 	 */
 	public int hasExpiredSince() {
-		return stateCurrentTime - stateDuration;
+		return stateDuration - stateCurrentTime;
 	}
 
 	public int getCurrentTime(){
@@ -73,11 +71,7 @@ public class GOState {
 	 * 
 	 * @return The stateID
 	 */
-	public StateType getStateType() {
-		return stateType;
-	}
-
-	public int getDefaultTransitionIndex() {
-		return defaultTransitionIndex;
+	public StateID getStateID() {
+		return stateID;
 	}
 }
