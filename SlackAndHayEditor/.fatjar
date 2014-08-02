@@ -1,0 +1,14 @@
+#Fat Jar Configuration File
+#Wed Jul 13 19:51:28 CEST 2011
+onejar.license.required=false
+manifest.classpath=playground
+manifest.removesigners=true
+onejar.checkbox=false
+jarname=SlackAndHayEditor_fat.jar
+manifest.mergeall=true
+manifest.mainclass=playground.MainFrame
+manifest.file=<createnew>
+jarname.isextern=false
+onejar.expand=
+excludes=
+includes=
