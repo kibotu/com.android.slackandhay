@@ -3,9 +3,8 @@ package com.android.slackandhay.scene;
 import javax.microedition.khronos.opengles.GL10;
 
 /**
- * A Scene Node, that does not render itself but is there for organisation purposes.
+ * Ein Knoten, der selbst nichts rendert und nur zu organisatorischen Zwecken verwendet wird
  * 
- * @author Til Börner, Tom Wallroth, Jan Rabe
  *
  */
 public class GLNullSceneNode extends GLSceneNode {
@@ -14,15 +13,19 @@ public class GLNullSceneNode extends GLSceneNode {
 	 * Ignoriert
 	 */
 	@Override
-	protected boolean renderInternal(final GL10 gl) {
+	protected boolean renderInternal(GL10 gl) {
 		return true;
 	}
 
 	@Override
-	protected void setupNode(final GL10 gl) {
+	protected void setupNode(GL10 gl) {
 	}
 
 	@Override
-	protected void cleanupNode(final GL10 gl) {
+	protected void cleanupNode(GL10 gl) {
+	}
+
+	@Override
+	protected void nextFrame(long dt) {
 	}
 }

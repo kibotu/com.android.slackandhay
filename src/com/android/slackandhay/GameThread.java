@@ -1,161 +1,60 @@
 package com.android.slackandhay;
 
-import android.content.Context;
 import android.os.SystemClock;
 import android.util.Log;
-import com.android.slackandhay.gameobject.GOGameObject;
-import com.android.slackandhay.gameobject.GOGameObjectManager;
-import com.android.slackandhay.grid.GridWorld;
-import com.android.slackandhay.level.Level;
-import com.android.slackandhay.sound.SoundEngine;
 
-import java.util.Vector;
-import java.util.concurrent.Semaphore;
+public class GameThread implements Runnable {
 
-/**
- * This is the class in which all game logic related objects are instantiated
- * 
- * @author Tilman Börner, Jan Rabe & Tom Wallroth
- * 
- */
-final public class GameThread implements Runnable {
-
-	@SuppressWarnings("unused")
-	private static final String TAG = GameThread.class.getSimpleName();
-	private static final boolean DISPLAY_FRAMERATE_ON_LOGCAT = false;
-	private static final boolean ENEABLE_FRAME_LIMITER = false;
 	private static Thread _gmThread;
 
 	private boolean _isRunning;
 	private boolean _isPaused;
-	private final Semaphore _semaphore;
-	private final Vector<GOGameObject> _gameObjects = RenderSychronizer.getInstance().getGOGameObjects();
-	private final Context _context;
+	private final long FPS = 1000 / 30;// FPS
 
-	/**
-	 * Creates a new GameThread
-	 * 
-	 * @param context
-	 *            the android context
-	 * @param semaphore
-	 *            the semaphore used to synchronize the game thread and the
-	 *            render thread
-	 */
-	public GameThread(final Context context, final Semaphore semaphore) {
+	public GameThread() {
 		super();
-		_context = context;
-		_semaphore = semaphore;
-		init();
+		Log.i("GameThread: ", "construct");
 	}
 
-	/**
-	 * The init method creates a world, the game object manager and loads the
-	 * level, as well as the sound engine
-	 */
-	private void init() {
-		final Level level = new Level(_context);
-		final GridWorld grid = level.load(R.raw.world);
-
-		final GOGameObjectManager gomanager = new GOGameObjectManager(grid, level);
-		gomanager.createGameObjects();
-
-		// TODO kill verbose messages somehow
-		SoundEngine.getInstance().loadSound(_context);
+	private void doLogic() {
+//		Log.i("GameThread: ", "running");
+		// go.update()
 	}
-
-	/**
-	 * this function lets the game progress and updates all the gameobjects
-	 * 
-	 * @param dt
-	 *            the amount of milliseconds the game shall progress
-	 */
-	private void doLogic(final int dt) {
-		final int gameobjectcount = _gameObjects.size();
-		for (int i = 0; i < gameobjectcount; i++) {
-			_gameObjects.get(i).update(dt);
-		}
-	}
-
-	private int fps = 0;
-	private int secondLength = 0;
-	private final long desiredMaxFrameRate = 60;
 
 	/**
 	 * Main Game Loop
 	 * 
-	 * this method is run by the thread
+	 * @Override
 	 */
-	@Override
 	public void run() {
-		long startTime = SystemClock.elapsedRealtime();
+		long startTime = SystemClock.uptimeMillis();
 		while (_isRunning) {
-
-			/** aquire permit **/
-			_semaphore.acquireUninterruptibly();
-
-			final long finalDelta = SystemClock.elapsedRealtime() - startTime;
-
-			startTime = SystemClock.elapsedRealtime();
-			/** reset start time **/
-			if (DISPLAY_FRAMERATE_ON_LOGCAT) {
-				secondLength += finalDelta;
-				fps++;
-				if (secondLength > 1000) {
-					Log.v(TAG, "Current Framerate: " + fps);
-					secondLength = 0;
-					fps = 0;
-				}
-			}
-
-			if (ENEABLE_FRAME_LIMITER) {
-				if (finalDelta < 1000 / desiredMaxFrameRate) {
-					try {
-						synchronized (this) {
-							Thread.currentThread().wait(((1000 / desiredMaxFrameRate) - finalDelta));
-						}
-					} catch (InterruptedException e) {
-						e.printStackTrace();
-					}
-				}
-			}
-
-			/** do logic **/
+//			_renderer.waitDrawingComplete();
 			if (!_isPaused) {
-				doLogic((int) finalDelta);
+				doLogic();
 			}
 
-			/** release permit **/
-			_semaphore.release();
+			/** sleep if faster than desired framerate **/
+			final long endTime = SystemClock.uptimeMillis();
+			long finalDelta = endTime - startTime;
+			if (finalDelta < FPS) {
+				try {
+					_gmThread.sleep(FPS - finalDelta);
+				} catch (InterruptedException e) {
+					// Interruptions here are no big deal.
+				}
+			}
+			startTime = SystemClock.uptimeMillis();
 		}
 	}
 
-	/**
-	 * This method is called by the Android API
-	 */
-	public void onStart() {
+	public void start() {
 		_isRunning = true;
 		_gmThread = new Thread(this);
 		_gmThread.start();
 	}
 
-	/**
-	 * This method is called by the Android API
-	 */
-	public void onResume() {
-		_isPaused = false;
-	}
-
-	/**
-	 * This method is called by the Android API
-	 */
-	public void onPause() {
-		_isPaused = true;
-	}
-
-	/**
-	 * This method is called by the Android API
-	 */
-	public void onStop() {
+	public void stop() {
 		_isRunning = false;
 	}
 }

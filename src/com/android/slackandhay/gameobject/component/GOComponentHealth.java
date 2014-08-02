@@ -2,31 +2,33 @@ package com.android.slackandhay.gameobject.component;
 
 import com.android.slackandhay.gameobject.GOGameObject;
 
-/**
- * This type of component represents the idea that there is a
- * certain amount of damage a gameObject can take before it will
- * be considered 'dead' or 'destroyed'.
- * 
- * @author til
- *
- */
-public abstract class GOComponentHealth extends GOComponent {
+public class GOComponentHealth extends GOComponent {
+	
+	private final String TAG = "GenericHealthComponent";
+	private final int fullHealth;
+	private int currentHealth;
 
-	@SuppressWarnings("unused")
-	protected final String TAG = GOComponentHealth.class.getSimpleName();
-	protected final int fullHealth;
-	protected int currentHealth;
-
-	public GOComponentHealth(final int fullHealth, final GOGameObject parent) {
+	public GOComponentHealth(int fullHealth, GOGameObject parent) {
 		super(GOComponentType.HEALTH, parent);
 		this.fullHealth = fullHealth;
-		currentHealth = fullHealth;
+		this.currentHealth = fullHealth;
 	}
 
 	@Override
-	public abstract void update(final int dt);
-	public abstract void decreaseHealthBy(int damage);
-	public abstract int getCurrentHealth();
-	public abstract int getHealthPercentage();
-	public abstract boolean isAlive();
+	public void update(int dt) {
+		// TODO Auto-generated method stub
+
+	}
+	
+	public int getCurrentHealth() {
+		return this.currentHealth;
+	}
+	
+	public int getHealthPercentage() {
+		return (this.currentHealth * 100) / this.fullHealth;
+	}
+	public boolean isAlive() {
+		return this.currentHealth > 0;
+	}
+
 }

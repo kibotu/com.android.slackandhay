@@ -8,40 +8,40 @@ import com.android.slackandhay.gameobject.GOGameObject;
  */
 class GridCell {
 
-	@SuppressWarnings("unused")
-	private static final String TAG = GridCell.class.getSimpleName();
-	private final GridLocation location;
+	private final GridLocation location; 
 	private GOGameObject occupant;
 
-	public GridCell(final GridLocation location) {
-		if (location == null)
+	public GridCell(GridLocation location) {
+		if (location == null) {
 			throw new NullPointerException();
+		}
 		this.location = location;
-		occupant = null;
+		this.occupant = null;
 	}
-
+	
 	public GridLocation getLocation() {
 		return location;
 	}
 
 	public boolean isOccupied() {
-		return occupant != null;
+		return this.occupant != null;
 	}
-
+	
 	public GOGameObject getOccupant() {
-		return occupant;
+		return this.occupant;
 	}
-
-	public boolean occupy(final GOGameObject occupant)  {
-		if (this.occupant != null)
+	
+	public boolean occupy(GOGameObject occupant)  {
+		if (this.occupant != null) {
 			return false;
+		}
 		this.occupant = occupant;
 		return true;
 	}
-
+	
 	public GOGameObject leave() {
-		final GOGameObject oldOccupant = occupant;
-		occupant = null;
+		GOGameObject oldOccupant = this.occupant;
+		this.occupant = null;
 		return oldOccupant;
 	}
 

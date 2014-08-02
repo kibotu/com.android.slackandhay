@@ -1,12 +1,5 @@
 package com.android.slackandhay.gameobject;
 
-
-/**
- * This enum represents a state inside the state manager
- * 
- * @author Tilman Börner, Jan Rabe & Tom Wallroth
- *
- */
 public class GOState {
 	public enum StateType {
 		IDLE, WALKING, RUNNING, ATTACKING, BLOCKING, STRUCK, DEAD, DESTROYED
@@ -16,7 +9,6 @@ public class GOState {
 	private int stateCurrentTime = 0;
 	private final int stateDuration;
 	private final int defaultTransitionIndex;
-	private int counter = 0;
 
 	/**
 	 * Creates a new State.
@@ -27,9 +19,9 @@ public class GOState {
 	 * @param duration
 	 *            specifies the duration of this very state.
 	 */
-	public GOState(final StateType stateType, final int defaultTransitionIndex, final int duration) {
+	public GOState(StateType stateType, int defaultTransitionIndex, int duration) {
 		this.stateType = stateType;
-		stateDuration = duration;
+		this.stateDuration = duration;
 		this.defaultTransitionIndex = defaultTransitionIndex;
 	}
 
@@ -40,11 +32,10 @@ public class GOState {
 	 *            Sets the currentTime to the desired offset. Normally you can
 	 *            just pass 0 as argument to start the state at its beginning.
 	 */
-	public void start(final int startOffsetTime) {
+	public void start(int startOffsetTime) {
 		// duration of the state is reset, so that it can be incremented on
 		// every update.
 		stateCurrentTime = 0;
-		counter++;
 	}
 
 	/**
@@ -53,17 +44,8 @@ public class GOState {
 	 * @param dt
 	 *            increments the state's currentTime by dt.
 	 */
-	public void update(final int dt) {
+	public void update(int dt) {
 		stateCurrentTime += dt;
-	}
-
-	/**
-	 * Calculates the percentage the transition between states
-	 * @return
-	 * a float between 0 and 1 ... except the state is overdue, then it could be more.
-	 */
-	public float getPercentage(){
-		return (float)stateCurrentTime / (float)stateDuration;
 	}
 
 	/**
@@ -79,14 +61,13 @@ public class GOState {
 		return stateCurrentTime - stateDuration;
 	}
 
-	public int getCurrentTime() {
-		return stateCurrentTime;
+	public int getCurrentTime(){
+		return this.stateCurrentTime;
 	}
-
-	public int getDuration() {
-		return stateDuration;
+	public int getDuration(){
+		return this.stateDuration;
 	}
-
+	
 	/**
 	 * Returns the StateID.
 	 * 
@@ -96,23 +77,7 @@ public class GOState {
 		return stateType;
 	}
 
-	/**
-	 * returns the default transition index
-	 * @return
-	 * 		the default transition index
-	 */
 	public int getDefaultTransitionIndex() {
 		return defaultTransitionIndex;
-	}
-
-	/**
-	 * Returns how many times the state was active. This will help implementing
-	 * everything that repeatedly uses the same state, because each state now
-	 * can tell for how long it was running.
-	 * 
-	 * @return times the state was active
-	 */
-	public int getCounter() {
-		return counter;
 	}
 }

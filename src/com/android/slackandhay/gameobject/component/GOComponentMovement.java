@@ -1,179 +1,72 @@
 package com.android.slackandhay.gameobject.component;
 
-
 import com.android.slackandhay.gameobject.GOGameObject;
+import com.android.slackandhay.gameobject.GOState;
+import com.android.slackandhay.gameobject.component.GOComponent;
+import com.android.slackandhay.grid.Grid;
 import com.android.slackandhay.grid.GridDirection;
-import com.android.slackandhay.grid.GridWorld;
+import com.android.slackandhay.grid.GridLocation;
 
-/**
- * A component of this type implements movement on a macro level,
- * that is, it can be given a target point in world coordinates
- * and it will do its best (which can amount to as little or as
- * much as the implementation cares) to get there.
- * 
- * None of this will make much sense without a spatial component present,
- * so it's very likely (bet on it) that one will be required.
- * 
- * @author til
- *
- */
-public abstract class GOComponentMovement extends GOComponent {
-
-	@SuppressWarnings("unused")
-	private static final String TAG = GOComponentMovement.class.getSimpleName();
+public class GOComponentMovement extends GOComponent {
+	
+	private final String TAG = "GenericMovementComponent";
 	private static final GOComponentType[] requiredComponents = {
 		GOComponentType.SPATIAL
 	};
-	private static float NO_TARGET = Float.NaN;
+	
+	private final Grid worldGrid;
+	private GridLocation target = null;
+	private GridDirection[] path = new GridDirection[10];
+	private int pathProgress = 0;
 
-	protected final GridWorld world;
-	private final GOComponentSpatial spatial;
-	private final DirectionFinder finder;
-	private float targetX = NO_TARGET;
-	private float targetY = NO_TARGET;
 
-	public GOComponentMovement(final GOGameObject parent, final GridWorld grid) {
+	public GOComponentMovement(GOGameObject parent, Grid grid) {
 		super(GOComponentType.MOVEMENT, parent, requiredComponents);
-		world = grid;
-		spatial = (GOComponentSpatial) parent.getComponent(GOComponentType.SPATIAL);
-		finder = new DirectionFinder(world, spatial.getPositionX(), spatial.getPositionY());
+		this.worldGrid = grid;
 	}
 
-	/* (non-Javadoc)
-	 * @see com.android.slackandhay.gameobject.component.GOComponent#update(int)
-	 * 
-	 * algorithm:
-	 * 
-	 * IF no target set:
-	 * 		RETURN
-	 * WHILE no movement possible:
-	 * 		find a new direction to try
-	 * 		IF this direction is NULL or NEUTRAL:
-	 * 			unset target
-	 * 			RETURN
-	 * 		IF movement in this direction possible:
-	 * 			move in this direction
-	 */
 	@Override
-	public void update(final int dt) {
-		if (!hasTarget())
+	public void update(int dt) {
+		if (target == null) {
 			return;
-		finder.reset(spatial.getPositionX(), spatial.getPositionY(), targetX, targetY);
+		}
+		final GOState state = parent.getStateMananger().getActiveState(); 
+		final GOState.StateType stateType = state.getStateType();
+		if (stateType != GOState.StateType.WALKING && stateType != GOState.StateType.RUNNING) {
+			return;
+		}
+		if (pathProgress == path.length || path[pathProgress] == null) {
+			// TODO getPath(path, )
+		}
 		
-		boolean canMove = false;
-		while (!canMove) {
-			final GridDirection direction = finder.findDirection();
-			if (direction == null || direction == GridDirection.NEUTRAL) {
-				unSetTarget();
-				finder.stop();
-				return;
-			}
-			canMove = spatial.canMove(direction);
-			if (canMove) {
-				spatial.move(direction);
-			} else {
-				// nothing
-			}
+		//MUUUH
+	}
+	
+	// copied from grid.GridPathFinder
+	/**
+	 * Fills a given array with {@link GridDirection directions} that lead
+	 * from one GridLocation to another. The 
+	 * {@link GridDirection.NEUTRAL neutral direction} indicates that 
+	 * either the destination has been reached or that no sensible move 
+	 * can be discerned. 
+	 * 
+	 * @param path	the target array; will be completely filled 
+	 * 				(overwritten!) with directions.
+	 * @param start	the starting location for the path
+	 * @param destination	the intended destination for the path 
+	 */
+	private void getPath(GridDirection[] path, GridLocation start, GridLocation destination) {
+		if (path == null) {
+			return;
+		}
+		GridLocation position = start;
+		for (int i = 0; i < path.length; i++) {
+			GridDirection direction = worldGrid.getDirection(position, destination); 
+			path[i] = direction;
+			// TODO update position
+//			position = worldGrid.getNeighboringCell(position, direction).getLocation();
 		}
 	}
 
-	public boolean hasTarget() {
-		return targetX != NO_TARGET && targetY != NO_TARGET;
-	}
-
-	public void setTarget(final float xf, final float yf) {
-		targetX = xf;
-		targetY = yf;
-
-	}
-
-	public void unSetTarget() {
-		targetX = NO_TARGET;
-		targetY = NO_TARGET;
-	}
-
-	//	private GridDirection findDirectionToTarget() {
-	//		assert this.hasTarget();
-	//		int startID = world.pointToID(spatial.getPositionX(),spatial.getPositionY());
-	//		int destinationID = world.pointToID(targetX,targetY);
-	//		return world.calculateBestDirection(startID, destinationID);
-	//	}
-
-	private class DirectionFinder {
-		private final GridWorld world;
-		private int startID;
-		private int destinationID;
-		private GridDirection startDirection = null;
-		private GridDirection lastDirection = null;
-		private boolean goClockwise = true;
-
-		/**
-		 * @param world
-		 * @param posX	the current horizontal position in world coordinates
-		 * @param posY	the current vertical position in world coordinates
-		 */
-		public DirectionFinder(final GridWorld world, final float posX, final float posY) {
-			this.world = world;
-			startID = world.pointToID(posX, posY);
-			stop();
-		}
-
-		/**
-		 * Reset this directionFinder to a new starting position and target.
-		 * 
-		 * @param posX
-		 * @param posY
-		 * @param targetX
-		 * @param targetY
-		 */
-		public void reset(final float posX, final float posY, final float targetX, final float targetY) {
-			startID = world.pointToID(posX, posY);
-			destinationID = world.pointToID(targetX, targetY);
-			startDirection = null;
-			lastDirection = null;
-			goClockwise = randomClockwise();
-		}
-
-		/**
-		 * Stop this directionFinder so findDirection will return NEUTRAL
-		 * until reset.
-		 * 
-		 */
-		public void stop() {
-			//			destinationID = startID;
-			startID = destinationID;
-		}
-
-		/**
-		 * @return	the next best guess for a good direction to the
-		 * 			set target; if not such direction can be found,
-		 * 			the NEUTRAL direction will be returned.
-		 */
-		public GridDirection findDirection() {
-			GridDirection direction = null;
-			if (startDirection == null) {
-				startDirection = world.calculateBestDirection(startID, destinationID);
-				lastDirection = startDirection;
-				direction = startDirection;
-			} else if (lastDirection.equals(startDirection)) {
-				stop();
-				direction = GridDirection.NEUTRAL;
-			} else {
-				direction = goClockwise ?
-						lastDirection.nextClockwise() :
-							lastDirection.nextCounterClockwise();
-						lastDirection = direction;
-			}
-			return direction;
-		}
-
-		/**
-		 * @return <code>true</code> or <code>false</code> with equal chance.
-		 */
-		private boolean randomClockwise() {
-			return Math.random() > 0.5 ? true : false;
-		}
-
-	}
 
 }

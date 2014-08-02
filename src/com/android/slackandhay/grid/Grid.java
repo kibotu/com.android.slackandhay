@@ -1,492 +1,190 @@
 package com.android.slackandhay.grid;
 
-
 import android.graphics.PointF;
-import android.util.Log;
 
-/**
- * A continuous piece of the world, divided into evenly distributed cells
- * of equal size.
- * 
- * Each cell can either be empty or hold exactly one object of type
- * <code>T</code>.
- * 
- * @author til
- *
- * @param <T>	the type of object which can occupy grid cells
- */
-public abstract class Grid<T> {
+import com.android.slackandhay.gameobject.GOGameObject;
 
-	private static final String TAG = Grid.class.getSimpleName();
-
-	protected final int width;
-	protected final int height;
-	protected final float scale;
-	protected final PointF origin;
-
-	private final T[] cells;
-
-	// ABSTRACT
-
+public class Grid {
+	
+	private final GridCell[][] cells;
+	private final PointF origin;
+	private final int pixelsPerCell;
+	private final int width;
+	private final int height;
+	
 	/**
-	 * Must return an array of <code>T</code> with a length of exactly
-	 * <code>width * height</code> as given in the constructor.
-	 * 
-	 * @return
+	 * @param width number of cells per grid row
+	 * @param height number of cells per grid column
+	 * @param location	the real-world position of the top-left grid cell
+	 * @param pixelsPerUnit side length of a grid cell in pixels
 	 */
-	protected abstract T[] initialize();
-
-	// IMPLEMENTATION
-
+	public Grid(int width, int height, PointF location, int pixelsPerUnit) {
+				if (width <= 0 || height <= 0) {
+					throw new IllegalArgumentException("'width' and 'height' must be > 0");
+				}
+				if (location == null) {
+					throw new IllegalArgumentException("'location' must not be null");
+				}
+				if (pixelsPerUnit <= 0) {
+					throw new IllegalArgumentException("'pixelsPerUnit' must be > 0");
+				}
+				this.origin = location;
+				this.pixelsPerCell = pixelsPerUnit;
+				this.width = width;
+				this.height = height;
+				this.cells = new GridCell[width][height];
+				initialize();
+	}
+	
 	/**
-	 * A continuous piece of the world, divided into evenly distributed
-	 * cells of equal size.
+	 * Returns a measurement for the distance between two given locations,
+	 * which must not necessarily be linear. I really oughta be more 
+	 * specific... 
 	 * 
-	 * Each cell can either be empty or hold exactly one object of type
-	 * <code>T</code>.
-	 * 
-	 * 
-	 * @param width		max horizontal number of cells in the grid
-	 * @param height	max vertical number of cells in the grid
-	 * @param origin	the top-left point covered by the grid, in world coordinates
-	 * @param scale		max side length of a cell in world length units
+	 * @param firstLocation 
+	 * @param secondLocation
+	 * @return the square of the distance between two given GridLocations
 	 */
-	public Grid(final int width, final int height, final PointF origin, final float scale) {
-		{
-			if (width < 1 || height < 1)
-				throw new IllegalArgumentException("'width' and 'height' must both be > 0");
-			if (scale <= 0)
-				throw new IllegalArgumentException("'scale' must be > 0");
-			if (origin == null)
-				throw new IllegalArgumentException("'origin' must not be null");
-		}
-		this.width = width;
-		this.height = height;
-		this.scale = scale;
-		this.origin = new PointF(origin.x, origin.y);
-		this.cells = initialize();
-		{
-			if (this.cells == null)
-				throw new IllegalStateException(
-				"'initialize()' must return a valid array, not null");
-			if (this.cells.length != this.width * this.height)
-				throw new IllegalStateException(
-						"'initialize()' must return an array of the same size " +
-				"as the grid (array.length == grid.width * grid.height)");
-		}
-	}
-
-	public int getWidth() {
-		return this.width;
-	}
-
-	public int getHeight() {
-		return this.height;
-	}
-
-	public float getOriginX() {
-		return this.origin.x;
-	}
-
-	public float getOriginY() {
-		return this.origin.y;
-	}
-
-	public float getScale() {
-		return this.scale;
-	}
-
-
-	/**
-	 * A valid id is the id of an existing grid cell and <i>never</i>
-	 * negative.
-	 * 
-	 * @param id
-	 * @return an integer <code>&ge; 0</code>
-	 */
-	public boolean isValidID(final int id) {
-		return id >= 0 && id < this.width * this.height;
-	}
-
-	/**
-	 * True if the point given in world coordinates is inside the
-	 * space covered by the grid.
-	 * 
-	 * @param xf
-	 * @param yf
-	 * @return
-	 */
-	public boolean pointIsInsideGrid(final float xf, final float yf) {
-		if (xf < this.origin.x)
-			return false;
-		if (xf >= this.origin.x + this.scale * this.width)
-			return false;
-		if (yf < this.origin.y)
-			return false;
-		if (yf >= this.origin.y + this.scale * this.height)
-			return false;
-		return true;
-	}
-
-	/**
-	 * Converts a pair of world coordinates into a valid grid id. If the
-	 * given point is located outside the grid, the id of the closest
-	 * grid cell is returned.
-	 * 
-	 * @param xf
-	 * @param yf
-	 * @return
-	 */
-	public int pointToID(final float xf, final float yf) {
-		final int x = Math.round((xf - this.origin.x) / this.scale);
-		final int y = Math.round((yf - this.origin.y) / this.scale);
-		return rawXYToID(x, y);
-		// assert isValidID()
-	}
-
-	/**
-	 * <p>
-	 *  Converts a valid grid id into world coordinates and stores them
-	 *  in <code>targetPoint</code>.
-	 *  </p><p>
-	 *  This way of returning results is used to avoid instantiating PointF
-	 *  and, eventually, triggering the garbage collector while the game
-	 *  is running on Android.
-	 *  </p>
-	 * @param id
-	 * @param targetPoint
-	 * @deprecated use idToPointX and idToPointY instead
-	 */
-	@Deprecated
-	public void idToPoint(final int id, final PointF targetPoint) {
-		if (!isValidID(id)) {
-			Log.w(TAG, "idToPoint() called with invalid id: " + id);
-		}
-		final float xf = (xFromID(id) + this.origin.x) * this.scale;
-		final float yf = (yFromID(id) + this.origin.y) * this.scale;
-		targetPoint.set(xf, yf);
-	}
-
-	public float idToPointX(final int id) {
-		return (xFromID(id) + this.origin.x) * this.scale;
-	}
-
-	public float idToPointY(final int id) {
-		return (yFromID(id) + this.origin.y) * this.scale;
-	}
-
-
-	/**
-	 * Returns <code>true</code> if the grid cell closest to the given point is
-	 * occupied by a T object.
-	 * 
-	 * @param xf
-	 * @param yf
-	 * @return	<code>true</code> if the grid cell closest to the given point is
-	 * 			occupied by a T object.
-	 */
-	public boolean pointIsOccupied(final float xf, final float yf) {
-		return idIsOccupied(pointToID(xf, yf));
-	}
-
-	/**
-	 * Returns <code>true</code> if the cell with the given id contains
-	 * an object.
-	 * 
-	 * @param id
-	 * @return	<code>true</code> if the cell with the given id contains
-	 * an object. Invalid ids will return <code>false</code>.
-	 */
-	public boolean idIsOccupied(final int id) {
-		if (!isValidID(id)) {
-			Log.w(TAG, "idIsOccupied() called with invalid id: " + id);
-			return false;
-		}
-		return cells[id] != null;
-	}
-
-	/**
-	 * Returns the object contained in the grid cell closest to the given
-	 * point. If no such object exists, <code>null</code> is returned.
-	 * 
-	 * @param xf
-	 * @param yf
-	 * @return	Returns the object contained in the grid cell closest to the given
-	 * 			point. If no such object exists, <code>null</code> is returned.
-	 */
-	public T get(final float xf, final float yf) {
-		return get(pointToID(xf, yf));
-	}
-
-	/**
-	 * Returns the object contained in the grid cell with the given id.
-	 * If no such object exists, or if the id is invalid, <code>null</code>
-	 * is returned.
-	 * 
-	 * @param id
-	 * @return	Returns the object contained in the grid cell with the given id.
-	 * 			If no such object exists, or if the id is invalid,
-	 * 			<code>null</code> is returned.
-	 */
-	public T get(final int id) {
-		if (!isValidID(id)) {
-			Log.w(TAG, "get() called with invalid id: " + id);
-			return null;
-		}
-		return cells[id];
-	}
-
-
-	/**
-	 * Puts an object into the grid cell closest to the point given, if
-	 * this cell is empty. If the cell is already occupied, the object will
-	 * not be put anywhere.
-	 * 
-	 * @param xf
-	 * @param yf
-	 * @param obj
-	 * @return	the id of the cell the object ended up in, or a value
-	 * 			<code>&lt; 0</code>  (= an invalid id), if put was
-	 * 			not successful.
-	 */
-	public int put(final float xf, final float yf, final T obj) {
-		final int id = pointToID(xf, yf);
-		return put(id, obj) == true ? id : -1;
-	}
-
-
-	/**
-	 * Puts an object into the grid cell with the id given. If the cell
-	 * is already occupied, or if the given id is invalid (doesn't exist),
-	 * the object will not be put anywhere, and <code>false</code> will be
-	 * returned.
-	 * 
-	 * @param id
-	 * @param obj
-	 * @return	<code>true</code> if the object was put into the desired cell.
-	 */
-	public boolean put(final int id, final T obj) {
-		if (!isValidID(id)) {
-			Log.w(TAG, "put() called with invalid id: " + id);
-			return false;
-		}
-		if (cells[id] != null)
-			return false;
-		cells[id] = obj;
-		return true;
-	}
-
-	/**
-	 * Remove the object in the grid cell closest to the given point and
-	 * return it.
-	 * 
-	 * @param xf
-	 * @param yf
-	 * @return	the removed object, or, if no object was removed,
-	 * 			 <code>null</code>.
-	 */
-	public T remove(final float xf, final float yf) {
-		return remove(pointToID(xf, yf));
-	}
-
-	/**
-	 * Remove the object contained in the grid cell with the given id
-	 * and return it. If the cell is not occupied, or if the id is
-	 * invalid, <code>null</code> will be returned.
-	 * 
-	 * @param id
-	 * @return	the removed object, or, if no object was removed,
-	 * 			<code>null</code>.
-	 */
-	public T remove(final int id) {
-		if (!isValidID(id)) {
-			Log.w(TAG, "remove() called with invalid id: " + id);
-			return null;
-		}
-		final T old = cells[id];
-		cells[id] = null;
-		return old;
-	}
-
-	/**
-	 * <p>
-	 * Compute a neighboring id: return the id of the grid cell bordering
-	 * on the cell with id <code>startID</code> in the given direction.
-	 * </p><p>
-	 * If the starting cell is on the grid border and the direction points
-	 * outside the grid, the id returned will belong to the starting cell
-	 * or one of its neighbors on the border. If an invalid id is supplied
-	 * as an argument, a value <code>&lt; 0</code> will be returned.
-	 * </p>
-	 * 
-	 * @param startID
-	 * @param direction
-	 * @return	the grid id that is next in the given direction.
-	 * 			<code>&lt; 0</code>  if <code>startID</code> is invalid.
-	 */
-	public int transformIDbyDirection(final int startID, final GridDirection direction) {
-		if (!isValidID(startID))
-			//Log.w(TAG, "transformIDbyDirection() called with invalid id: " + startID);
-			return -1;
-		final int x = xFromID(startID) + direction.xModifier;
-		final int y = yFromID(startID) + direction.yModifier;
-		return rawXYToID(x, y);
-	}
-
-	/**
-	 * 
-	 * 
-	 * @param id1
-	 * @param id2
-	 * @return 	the square of the distance (in grid units) between
-	 * 			the grid cells with the given id's, or, if an invalid id
-	 * 			is provided, a negative	value.
-	 */
-	public int calculateSquaredDistance(final int id1, final int id2) {
-		if (!isValidID(id1)) {
-			Log.w(TAG, "calculateSquaredDistance() called with invalid " +
-					"parameter 'id1': " + id1);
-			return -1;
-		}
-		if (!isValidID(id2)) {
-			Log.w(TAG, "calculateSquaredDistance() called with invalid " +
-					"parameter 'id2': " + id2);
-			return -1;
-		}
-		final int dx = xFromID(id2) - xFromID(id1);
-		final int dy = yFromID(id2) - yFromID(id1);
+	public int getDistance(GridLocation firstLocation, GridLocation secondLocation) {
+		// TODO null checks. would returning a distance of 0 do more good than harm?
+		final int dx = firstLocation.x - secondLocation.x;
+		final int dy = firstLocation.y - secondLocation.y;
 		return dx*dx + dy*dy;
 	}
-
+	
 	/**
-	 * <p>
-	 * Calculate the direction of the shortest path from one grid cell to another.
-	 * </p><p>
-	 * Starting from the cell with <code>startID</code>, this is the
-	 * direction of the neighboring cell which is closest to the cell
-	 * with <code>destinationID</code>.
-	 * </p><p>
-	 * If one of the ids is invalid, the
-	 * {@linkplain GridDirection#NEUTRAL neutral} direction will be returned.
-	 * </p>
+	 * Given a starting gridLocation, returns the direction of the neighboring
+	 * gridLocation that is closest to the destination. This direction may
+	 * of course be {@linkplain GridDirection.NEUTRAL neutral}; apart from 
+	 * the obvious case of <code>start == destination</code>, this will happen
+	 * if no sensical direction can be determined, for example if start or
+	 * destination happen to lie outside the grid.
 	 * 
-	 * @param startID
-	 * @param destinationID
-	 * @return	the direction towards the neighboring cell of
-	 * 			the grid cell with id <code>startID</code> which is
-	 * 			closest to the cell with id <code>destinationID</code>.
-	 * 			{@link GridDirection#NEUTRAL} if <code>startID</code>
-	 * 			equals <code>destinationID</code>, or if an invalid id is provided.
+	 * @param start
+	 * @param destination
+	 * @return
 	 */
-	
-	//preallocate...
-	private final GridDirection[] directions = GridDirection.values();
-	
-	public GridDirection calculateBestDirection(final int startID, final int destinationID) {
-		if (!isValidID(startID)) {
-			Log.w(TAG, "calculateSquaredDistance() called with invalid " +
-					"parameter 'startID': " + startID);
+	public GridDirection getDirection(GridLocation start, GridLocation destination) {
+		if (locationOutOfBounds(start) || locationOutOfBounds(destination)) {
 			return GridDirection.NEUTRAL;
 		}
-		if (!isValidID(destinationID)) {
-			Log.w(TAG, "calculateSquaredDistance() called with invalid " +
-					"parameter 'destinationID': " + destinationID);
-			return GridDirection.NEUTRAL;
-		}
-		//is now preallocated.
-		//final GridDirection[] directions = GridDirection.values();
-		int bestDistance = Integer.MAX_VALUE;
+		int bestValue = Integer.MAX_VALUE;
 		GridDirection bestDirection = GridDirection.NEUTRAL;
-		//preallocate...
-		final int directionslength = directions.length; 
-		for (int i = 0; i < directionslength; i++) {
-			final int modID = transformIDbyDirection(startID, directions[i]);
-			final int d = calculateSquaredDistance(modID, destinationID);
-			if (d < bestDistance) {
-				bestDistance = d;
-				bestDirection = directions[i];
+		final GridDirection[] directions = GridDirection.values();
+		for (int i = 0; i < directions.length; i++) {
+			final GridDirection dir = directions[i];
+			final int dx = destination.x - (start.x + dir.xModifier);
+			final int dy = destination.y - (start.y + dir.yModifier);
+			final int value = dx*dx + dy*dy;
+			if (value < bestValue) {
+				bestValue = value;
+				bestDirection = dir;
 			}
 		}
 		return bestDirection;
 	}
-
+	
 	/**
-	 * Convert two raw grid coordinates (in grid units) to an id. Now
-	 * validation or verification is done: coordinates outside the grid
-	 * will be clamped to the nearest valid value.
+	 * Returns the gameObject occupying a given gridLocation.
 	 * 
-	 * @param x
-	 * @param y
-	 * @return
+	 * @param location
+	 * @return	the gameObject at location, or <code>null</code>
 	 */
-	public int rawXYToID(int x, int y) {
-		x = clampX(x);
-		y = clampY(y);
-		final int id = x + y * this.width;
-		return id;
+	public GOGameObject get(GridLocation location) {
+		return getCell(location).getOccupant();
 	}
-
+	
+	public GridLocation getNeighboringLocation(GridLocation location, GridDirection direction) {
+		return getNeighboringCell(location, direction).getLocation();
+	}
+	
 	/**
-	 * Extract the horizontal grid coordinate from an id. No checking is
-	 * done: coordinates outside the grid may yield an invalid value.
+	 * Deals damage to a given gridLocation. This damage will not accrue
+	 * but be instantly absorbed, which makes a difference to some details
+	 * of the game mechanics. A theoretical scenario not necessarily applicable
+	 * to this game: 
 	 * 
-	 * @param id
-	 * @return 	a value in raw grid units that is not adjusted for
-	 * 			grid offset or scale.
+	 * Imagine a location receiving some damage which is fatal to the 
+	 * object sitting there; almost instantly thereafter, negative damage 
+	 * (= healing) is applied. Since the object already absorbed the fatal
+	 * damage, healing will have no effect; otherwise, the negative damage
+	 * could have cancelled some of the real damage, and the object might
+	 * have survived this example.
+	 * 
+	 * @param damage
+	 * @param location
 	 */
-	private int xFromID(final int id) {
-		return id % this.width;
+	public void putDamage(int damage, GridLocation location) {
+		// TODO
+		final GridCell target = getCell(location);
+		if (target == null) {
+			return;
+		}
+		// target.components.defense.takeDamage(damage, null);
 	}
-
+	
 	/**
-	 * Extract the vertical grid coordinate from an id. No checking is
-	 * done: an invalid id may return coordinates outside the grid.
+	 * Place a gameObject in a girdLocation. This will work if no other
+	 * gameObject is currently sitting there.
 	 * 
-	 * @param id
-	 * @return	a value in raw grid units that is not adjusted for
-	 * 			grid offset or scale.
+	 * @param location
+	 * @param object
+	 * @return true if the object is now located at location
 	 */
-	private int yFromID(final int id) {
-		return id / this.width;
+	boolean put(GridLocation location, GOGameObject object) {
+		//TODO null checks
+		//TODO if location.equals(object.location) return true
+		final GridCell target = getCell(location);
+		if (target == null || target.isOccupied()) {
+			return false;
+		}
+		target.occupy(object);
+		return true;
 	}
-
+	
 	/**
-	 * Limits a value to valid horizontal grid coordinates, which
-	 * is an integer between <code>0</code> and <code>width-1</code>.
-	 * Values beyond these limits will be set to the nearest limit.
+	 * Remove the gameObject from a given location.
 	 * 
-	 * @param x
-	 * @return	the integer between <code>0</code> and <code>width-1</code>
-	 * 			closest to <code>x</code>
+	 * @param location
+	 * @return	the gameObject that was removed; <code>null</code> if there
+	 * 			was nothing there to remove 
 	 */
-	private int clampX(final int x) {
-		if (x < 0)
-			return 0;
-		if (x >= this.width)
-			return this.width - 1;
-		return x;
+	GOGameObject unPut(GridLocation location) {
+		final GridCell target = getCell(location);
+		return (target == null || !target.isOccupied()) ? null : target.getOccupant();
 	}
 
-	/**
-	 * Limits a value to valid vertical grid coordinates, which
-	 * is an integer between <code>0</code> and <code>height-1</code>.
-	 * Values beyond these limits will be set to the nearest limit.
-	 * 
-	 * @param y
-	 * @return	the integer between <code>0</code> and <code>height-1</code>
-	 * 			closest to <code>y</code>
-	 */
-	private int clampY(final int y) {
-		if (y < 0)
-			return 0;
-		if (y >= this.height)
-			return this.height - 1;
-		return y;
+	GridCell getCell(GridLocation location) {
+		final int x = location.x;
+		final int y = location.y;
+		if (x < 0 || y < 0 || x >= width || y >= height) {
+			return null;
+		}
+		return cells[x][y];
+	}
+	
+	GridCell getNeighboringCell(GridLocation location, GridDirection direction) {
+		final int x = location.x + direction.xModifier;
+		final int y = location.y + direction.yModifier;
+		if (x < 0 || y < 0 || x >= width || y >= height) {
+			return null;
+		}
+		return cells[x][y];
+	}
+	
+	private void initialize() {
+		for (int x = 0; x < cells.length; x++) {
+			for (int y = 0; y < cells[x].length; y++) {
+				float xf = (x + this.origin.x) * this.pixelsPerCell;
+				float yf = (y + this.origin.y) * this.pixelsPerCell;
+				cells[x][y] = new GridCell(new GridLocation(x,y, new PointF(xf, yf)));
+			}
+		}
 	}
 
-	@Override
-	public String toString() {
-		return cells.toString();
+	private boolean locationOutOfBounds(GridLocation location) {
+		return (location.x < 0 || location.y < 0 || 
+				location.x >= this.width || location.y >= this.height);
 	}
-
+	
 }
